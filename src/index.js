@@ -47,12 +47,19 @@ async function handleMessage(message, deps = {}) {
 function startDiscordBot() {
   if (!config.discord.token) throw new Error('DISCORD_BOT_TOKEN is missing');
   const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.DirectMessages],
-    partials: [Partials.Channel],
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.GuildMembers,
+    ],
+    partials: [Partials.Channel, Partials.User],
   });
   clientInstance = client;
   client.once('ready', () => logger.info(`Discord bot logged in as ${client.user.tag}`));
   client.on('messageCreate', (message) => handleMessage(message).catch((err) => logger.error('Unhandled message error:', err.message)));
+  client.on('error', (err) => logger.error('Discord client error:', err.message));
   client.login(config.discord.token);
   return client;
 }
@@ -73,15 +80,38 @@ function startTrackerCron() {
 }
 
 function main() {
-  startHealthServer();
-  startDiscordBot();
-  startTrackerCron();
+  try {
+    logger.info('Starting Binary Signal Bot...');
+    logger.info('Environment check:');
+    logger.info('- DISCORD_BOT_TOKEN:', config.discord.token ? 'Set ✓' : 'MISSING ✗');
+    logger.info('- UPSTASH_REDIS_REST_URL:', config.redis.url ? 'Set ✓' : 'MISSING ✗');
+    logger.info('- UPSTASH_REDIS_REST_TOKEN:', config.redis.token ? 'Set ✓' : 'MISSING ✗');
+    logger.info('- TWELVEDATA_API_KEY:', config.twelvedata.apiKey ? 'Set ✓' : 'MISSING ✗');
+
+    startHealthServer();
+    startDiscordBot();
+    startTrackerCron();
+    logger.info('Binary Signal Bot fully initialized ✓');
+  } catch (err) {
+    logger.error('Fatal error during startup:', err.message);
+    process.exit(1);
+  }
 }
 
 if (require.main === module) {
   main();
-  process.on('SIGTERM', () => process.exit(0));
-  process.on('SIGINT', () => process.exit(0));
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully...');
+    process.exit(0);
+  });
+  process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully...');
+    process.exit(0);
+  });
+  process.on('uncaughtException', (err) => {
+    logger.error('Uncaught exception:', err);
+    process.exit(1);
+  });
 }
 
 module.exports = { routeCommand, handleMessage };
