@@ -6,10 +6,6 @@ function num(val, fallback) {
 }
 
 module.exports = {
-  redis: {
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  },
   discord: {
     token: process.env.DISCORD_BOT_TOKEN || '',
   },
