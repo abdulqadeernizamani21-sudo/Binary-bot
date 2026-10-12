@@ -1,6 +1,14 @@
 const { Redis } = require('@upstash/redis');
 const config = require('../config');
 
+// Validate Redis configuration
+if (!config.redis.url || !config.redis.token) {
+  console.error('ERROR: Missing Redis configuration!');
+  console.error('UPSTASH_REDIS_REST_URL:', !!config.redis.url ? 'Set' : 'NOT SET');
+  console.error('UPSTASH_REDIS_REST_TOKEN:', !!config.redis.token ? 'Set' : 'NOT SET');
+  throw new Error('Redis configuration is incomplete. Check your environment variables.');
+}
+
 const redis = new Redis({
   url: config.redis.url,
   token: config.redis.token,
