@@ -1,12 +1,9 @@
 const express = require('express');
-const cron = require('node-cron');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 
 const config = require('./config');
 const logger = require('./utils/logger');
 const { handleBinaryCommand } = require('./commands/binary');
-const { handleBinaryAccuracyCommand } = require('./commands/binaryAccuracy');
-const { runBinaryTrackerCycle } = require('./services/binaryTracker');
 const { splitForDiscord } = require('./utils/formatting');
 
 let clientInstance = null;
@@ -72,25 +69,17 @@ function startHealthServer() {
   return server;
 }
 
-function startTrackerCron() {
-  cron.schedule('* * * * *', () => {
-    runBinaryTrackerCycle().catch((err) => logger.error('Binary tracker cycle failed:', err.message));
-  });
-  logger.info('Binary signal tracker cron scheduled (every minute).');
-}
 
 function main() {
   try {
-    logger.info('Starting Binary Signal Bot...');
+    logger.info('Starting Binary Signal Bot (Simplified - No Redis)...');
     logger.info('Environment check:');
     logger.info('- DISCORD_BOT_TOKEN:', config.discord.token ? 'Set ✓' : 'MISSING ✗');
-    logger.info('- UPSTASH_REDIS_REST_URL:', config.redis.url ? 'Set ✓' : 'MISSING ✗');
-    logger.info('- UPSTASH_REDIS_REST_TOKEN:', config.redis.token ? 'Set ✓' : 'MISSING ✗');
+    logger.info('- DISCORD_CHANNEL_ID:', process.env.DISCORD_CHANNEL_ID ? 'Set ✓' : 'MISSING ✗');
     logger.info('- TWELVEDATA_API_KEY:', config.twelvedata.apiKey ? 'Set ✓' : 'MISSING ✗');
 
     startHealthServer();
     startDiscordBot();
-    startTrackerCron();
     logger.info('Binary Signal Bot fully initialized ✓');
   } catch (err) {
     logger.error('Fatal error during startup:', err.message);
